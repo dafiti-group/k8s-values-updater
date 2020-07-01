@@ -1,0 +1,6 @@
+# Subchart Values
+some-chart:
+  image:
+    somethingThatShouldKeepThatSame: true
+    tag: "12"
+    pullRequestId: asda
