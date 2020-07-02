@@ -60,11 +60,7 @@ func (b *Bump) Run() error {
 func (b *Bump) push(files []string) error {
 	//
 	directory := "."
-	commitMsg := `[ci skip] ci: edit values with the new image tag
-
-
-	skip-checks: true
-    `
+	commitMsg := "[ci skip] ci: edit values with the new image tag\n\n\nskip-checks: true"
 	name := "K8s Values Updater"
 
 	// Opens an already existing repository.
