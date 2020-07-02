@@ -2,5 +2,5 @@
 some-chart:
   image:
     somethingThatShouldKeepThatSame: true
-    tag: "1"
+    tag: "2"
     pullRequestId: "18"
