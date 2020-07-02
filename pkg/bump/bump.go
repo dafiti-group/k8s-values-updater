@@ -46,10 +46,15 @@ func (b *Bump) Run() error {
 		}
 	}
 
-	//
+	if b.HasNoChanges() {
+		fmt.Println("Nothing Changed")
+		return nil
+	}
+
 	if err = b.push(files); err != nil {
 		return err
 	}
+
 	return nil
 }
 func (b *Bump) push(files []string) error {
@@ -149,7 +154,7 @@ func (b *Bump) bump(filePath string) error {
 		return err
 	}
 
-	a1, err := o.String()
+	b.Before, err = o.String()
 	if err != nil {
 		return nil
 	}
@@ -159,11 +164,12 @@ func (b *Bump) bump(filePath string) error {
 		return err
 	}
 
-	b1, err := o.String()
+	b.After, err = o.String()
 	if err != nil {
 		return nil
 	}
-	if a1 != b1 {
+
+	if b.HasNoChanges() {
 		fmt.Println("Nothing Changed")
 		return nil
 	}
@@ -174,4 +180,8 @@ func (b *Bump) bump(filePath string) error {
 	}
 
 	return nil
+}
+
+func (b *Bump) HasNoChanges() bool {
+	return b.Before == b.After
 }

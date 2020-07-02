@@ -13,6 +13,8 @@ type Bump struct {
 	ReplaceWith string
 	Tag         string
 	PrID        string
+	Before      string
+	After       string
 }
 
 type defaultValue struct {
