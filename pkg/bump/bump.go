@@ -110,25 +110,25 @@ func (b *Bump) push(files []string) error {
 		refSpec = []config.RefSpec{config.RefSpec(b.RefSpec)}
 	}
 
+	fmt.Println("Fetch")
+	err = r.Fetch(&git.FetchOptions{
+		RemoteName: b.RemoteName,
+		Force:      true,
+	})
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	fmt.Println("Pull")
+	err = w.Pull(&git.PullOptions{
+		RemoteName: b.RemoteName,
+		Force:      true,
+	})
+	if err != nil {
+		fmt.Println(err)
+	}
+
 	if !b.DryRun {
-		fmt.Println("Fetch")
-		err = r.Fetch(&git.FetchOptions{
-			RemoteName: b.RemoteName,
-			Force:      true,
-		})
-		if err != nil {
-			fmt.Println(err)
-		}
-
-		fmt.Println("Pull")
-		err = w.Pull(&git.PullOptions{
-			RemoteName: b.RemoteName,
-			Force:      true,
-		})
-		if err != nil {
-			fmt.Println(err)
-		}
-
 		fmt.Println("Push")
 		err = r.Push(&git.PushOptions{
 			RemoteName: b.RemoteName,
