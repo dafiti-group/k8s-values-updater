@@ -9,7 +9,6 @@ import (
 	git "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing/object"
-	"github.com/k0kubun/pp"
 	kyaml "sigs.k8s.io/kustomize/kyaml/yaml"
 	kyamlmerge "sigs.k8s.io/kustomize/kyaml/yaml/merge2"
 )
@@ -159,8 +158,9 @@ func (b *Bump) bump(filePath string) error {
 	if err != nil {
 		return nil
 	}
-	if a1 == b1 {
-		pp.Println("Nothing Changed")
+	if a1 != b1 {
+		fmt.Println("Nothing Changed")
+		return nil
 	}
 
 	err = kyaml.WriteFile(o, filePath)
