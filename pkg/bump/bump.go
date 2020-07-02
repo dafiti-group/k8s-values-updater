@@ -47,12 +47,12 @@ func (b *Bump) Run() error {
 	}
 
 	//
-	if err = b.push(); err != nil {
+	if err = b.push(files); err != nil {
 		return err
 	}
 	return nil
 }
-func (b *Bump) push() error {
+func (b *Bump) push(files []string) error {
 	//
 	directory := "."
 	commitMsg := "[ci skip] circle: edit live values with the new image tag to trigger deploy"
@@ -69,7 +69,12 @@ func (b *Bump) push() error {
 		return err
 	}
 
-	_, err = w.Add(".")
+	for _, f := range files {
+		_, err = w.Add(f)
+		if err != nil {
+			return err
+		}
+	}
 
 	status, err := w.Status()
 	if err != nil {
