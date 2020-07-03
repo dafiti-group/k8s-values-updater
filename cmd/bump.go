@@ -19,11 +19,16 @@ import (
 	"os"
 
 	"github.com/dafiti-group/k8s-values-updater/pkg/bump"
+
+	"github.com/dafiti-group/k8s-values-updater/pkg/bump/file"
+	"github.com/dafiti-group/k8s-values-updater/pkg/bump/git"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
 var b bump.Bump
+var g git.Git
+var f file.File
 var basicAuthUser string
 var basicAuthPass string
 
@@ -41,7 +46,7 @@ var addCmd = &cobra.Command{
 		}
 
 		//
-		err = b.Init(basicAuthUser, basicAuthPass, dryRun)
+		err = b.Init(&g, &f, basicAuthUser, basicAuthPass, dryRun)
 		if err != nil {
 			fmt.Println("Error")
 			fmt.Fprintln(os.Stderr, err)
@@ -64,20 +69,19 @@ func init() {
 
 	RootCmd.AddCommand(addCmd)
 
-	addCmd.PersistentFlags().StringVar(&b.RemoteName, "remote-name", "origin", "")
+	addCmd.PersistentFlags().BoolVarP(&f.IsRoot, "is-root", "", false, "If set will define that the values to be changed has no subchart")
+	addCmd.PersistentFlags().BoolVarP(&g.ForceSSH, "force-ssh", "", false, "Will force to use ssh otherwise will give https the preference if GITHUB_ACCESS_TOKEN IS IN PATH")
 	addCmd.PersistentFlags().StringVar(&b.DirPath, "dir-path", "deploy/*", "File Path")
 	addCmd.PersistentFlags().StringVar(&b.FileNames, "file-names", "values.yaml", "File Path")
-	addCmd.PersistentFlags().StringVar(&b.ReplaceWith, "replace-with", "", "If passed will try to merge this value with the values yaml")
-	addCmd.PersistentFlags().StringVar(&b.ChartName, "chart-name", "", "The name of the subchart")
-	addCmd.PersistentFlags().BoolVarP(&b.IsRoot, "is-root", "", false, "If set will define that the values to be changed has no subchart")
-	addCmd.PersistentFlags().StringVarP(&b.Email, "email", "e", "k8s-values-updater@mailinator.com", "Email that will commit")
-	addCmd.PersistentFlags().StringVarP(&b.PrID, "pr-id", "p", "", "Pull Request ID")
-	addCmd.PersistentFlags().StringVarP(&b.Tag, "tag", "t", "", "Image Tag")
-	addCmd.PersistentFlags().StringVar(&b.RefSpec, "refspec", "", "refspec")
-	addCmd.PersistentFlags().StringVar(&b.Branch, "branch", "", "branch")
-	addCmd.PersistentFlags().StringVar(&basicAuthUser, "auth-user", "x-access-token", "Auth User")
 	addCmd.PersistentFlags().StringVar(&basicAuthPass, "auth-pass", "", "Auth PassWord")
-	addCmd.PersistentFlags().BoolVarP(&b.ForceSSH, "force-ssh", "", false, "Will force to use ssh otherwise will give https the preference if GITHUB_ACCESS_TOKEN IS IN PATH")
+	addCmd.PersistentFlags().StringVar(&basicAuthUser, "auth-user", "x-access-token", "Auth User")
+	addCmd.PersistentFlags().StringVar(&f.ChartName, "chart-name", "", "The name of the subchart")
+	addCmd.PersistentFlags().StringVar(&f.ReplaceWith, "replace-with", "", "If passed will try to merge this value with the values yaml")
+	addCmd.PersistentFlags().StringVar(&g.RemoteName, "remote-name", "origin", "")
+	addCmd.PersistentFlags().StringVarP(&f.PrID, "pr-id", "p", "", "Pull Request ID")
+	addCmd.PersistentFlags().StringVarP(&f.Tag, "tag", "t", "", "Image Tag")
+	addCmd.PersistentFlags().StringVarP(&g.Email, "email", "e", "k8s-values-updater@mailinator.com", "Email that will commit")
+	addCmd.PersistentFlags().StringVarP(&g.WorkDir, "workdir", "w", ".", "Workdir")
 }
 
 func initBump(b *bump.Bump) {
@@ -91,6 +95,6 @@ func initBump(b *bump.Bump) {
 	// Take the envs and load it on the struct
 	err := v.Unmarshal(b)
 	if err != nil {
-		panic(fmt.Errorf("Fatal error config file: %s \n", err))
+		panic(fmt.Errorf("fatal error config file: %s", err))
 	}
 }

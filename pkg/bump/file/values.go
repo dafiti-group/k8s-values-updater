@@ -1,8 +1,17 @@
-package bump
+package file
 
 import (
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
+
+type defaultValue struct {
+	charts    []string
+	chartName string
+	isRoot    bool
+	tag       string
+	prID      string
+	value     []string
+}
 
 type ImageRoot struct {
 	Image Image `yaml:"image"`
@@ -13,18 +22,25 @@ type Image struct {
 	PullRequestID string `yaml:"pullRequestId,omitempty"`
 }
 
-func newDefaultValue(charts []string, chartName string, isRoot bool, tag string, prID string) (*defaultValue, error) {
+func CreateDefaultValuesString(charts []string, chartName string, isRoot bool, tag string, prID string, replaceWith string) (string, error) {
+	if replaceWith != "" {
+		return replaceWith, nil
+	}
 	d := &defaultValue{}
 	d.charts = charts
 	d.chartName = chartName
 	d.isRoot = isRoot
 	d.tag = tag
 	d.prID = prID
-	err := d.Build()
-	return d, err
+	err := d.build()
+	if err != nil {
+		return "", err
+	}
+
+	return d.string(), err
 }
 
-func (d *defaultValue) Build() error {
+func (d *defaultValue) build() error {
 	image := ImageRoot{
 		Image: Image{
 			Tag:           d.tag,
@@ -67,6 +83,6 @@ func (d *defaultValue) Build() error {
 	return nil
 }
 
-func (d *defaultValue) String() string {
+func (d *defaultValue) string() string {
 	return d.value[0]
 }
