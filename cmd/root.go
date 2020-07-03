@@ -27,8 +27,8 @@ import (
 )
 
 var cfgFile string
-var Verbose bool
-var DryRun bool
+var verbose bool
+var dryRun bool
 
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
@@ -55,8 +55,8 @@ func init() {
 	// will be global for your application.
 
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.config.yaml)")
-	RootCmd.PersistentFlags().BoolVarP(&Verbose, "verbose", "v", false, "verbose output")
-	RootCmd.PersistentFlags().BoolVarP(&DryRun, "dry-run", "", false, "Dry Run")
+	RootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
+	RootCmd.PersistentFlags().BoolVarP(&dryRun, "dry-run", "", false, "Dry Run")
 }
 
 // initConfig reads in config file and ENV variables if set.
