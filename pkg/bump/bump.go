@@ -7,6 +7,7 @@ import (
 
 	file "github.com/dafiti-group/k8s-values-updater/pkg/bump/file"
 	git "github.com/dafiti-group/k8s-values-updater/pkg/bump/git"
+	"github.com/sirupsen/logrus"
 )
 
 type Bump struct {
@@ -14,23 +15,39 @@ type Bump struct {
 	FileNames string
 	DryRun    bool
 
-	git  git.Git
-	file file.File
+	git  *git.Git
+	file *file.File
+	Log  *logrus.Logger
 }
 
-// Run
-func (b *Bump) Init(g *git.Git, file *file.File, user string, pass string, dryRun bool) error {
+// Init ...
+func (b *Bump) Init(
+	git *git.Git,
+	file *file.File,
+	user string,
+	pass string,
+	dryRun bool,
+	log *logrus.Logger,
+) error {
+
+	// Initizali logger
+	git.Log = log
+	file.Log = log
+	b.Log = log
+
+	b.git = git
+	b.file = file
 	// TODO: Validade fields
 	b.DryRun = dryRun
 
-	err := g.SetBasicAuth(user, pass)
+	err := git.SetBasicAuth(user, pass)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-// Run
+// Run ...
 func (b *Bump) Run() error {
 	files, err := b.files()
 	if err != nil {
@@ -38,7 +55,7 @@ func (b *Bump) Run() error {
 	}
 	//
 	if len(files) < 1 {
-		return fmt.Errorf("File not found")
+		return fmt.Errorf("file not found")
 	}
 
 	//
@@ -55,7 +72,7 @@ func (b *Bump) Run() error {
 
 	//
 	if b.file.HasNoChanges() {
-		fmt.Println("Nothing Changed")
+		b.Log.Info("nothing Changed will not push")
 		return nil
 	}
 
@@ -81,6 +98,6 @@ func (b *Bump) files() ([]string, error) {
 			r = append(r, v)
 		}
 	}
-	fmt.Println(r)
+	b.Log.Debug(r)
 	return r, nil
 }

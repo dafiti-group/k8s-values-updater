@@ -19,6 +19,7 @@ import (
 	"os"
 
 	"github.com/dafiti-group/k8s-values-updater/pkg/bump"
+	"github.com/sirupsen/logrus"
 
 	"github.com/dafiti-group/k8s-values-updater/pkg/bump/file"
 	"github.com/dafiti-group/k8s-values-updater/pkg/bump/git"
@@ -38,25 +39,24 @@ var addCmd = &cobra.Command{
 	Short: "Bump value on file",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
+
 		//
 		dryRun, err := cmd.Flags().GetBool("dry-run")
 		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
+			logrus.Panic(os.Stderr, err)
 			os.Exit(2)
 		}
 
 		//
-		err = b.Init(&g, &f, basicAuthUser, basicAuthPass, dryRun)
+		err = b.Init(&g, &f, basicAuthUser, basicAuthPass, dryRun, logrus.New())
 		if err != nil {
-			fmt.Println("Error")
-			fmt.Fprintln(os.Stderr, err)
+			logrus.Panic(os.Stderr, err)
 			os.Exit(2)
 		}
 
 		//
 		if err = b.Run(); err != nil {
-			fmt.Println("Error")
-			fmt.Fprintln(os.Stderr, err)
+			logrus.Panic(os.Stderr, err)
 			os.Exit(2)
 		}
 	},

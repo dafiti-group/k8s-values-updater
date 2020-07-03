@@ -1,8 +1,7 @@
 package file
 
 import (
-	"fmt"
-
+	"github.com/sirupsen/logrus"
 	kyaml "sigs.k8s.io/kustomize/kyaml/yaml"
 	kyamlmerge "sigs.k8s.io/kustomize/kyaml/yaml/merge2"
 )
@@ -15,6 +14,7 @@ type File struct {
 	PrID        string
 	before      string
 	after       string
+	Log         *logrus.Logger
 }
 
 //
@@ -63,7 +63,7 @@ func (f *File) Bump(filePath string) error {
 
 	// If Nothing Changed do nothinb
 	if f.HasNoChanges() {
-		fmt.Println("Nothing Changed")
+		f.Log.Info("nothing changed, no file will be altered")
 		return nil
 	}
 

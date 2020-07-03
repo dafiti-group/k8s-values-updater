@@ -1,13 +1,13 @@
 package git
 
 import (
-	"fmt"
 	"time"
 
 	git "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
+	"github.com/sirupsen/logrus"
 )
 
 // Git
@@ -17,12 +17,13 @@ type Git struct {
 	Email      string
 	ForceSSH   bool
 	auth       transport.AuthMethod
+	Log        *logrus.Logger
 }
 
 // SetBasicAuth Sets the chosen auth
 func (g *Git) SetBasicAuth(user string, pass string) error {
 	if pass != "" && !g.ForceSSH {
-		fmt.Println("Will authenticate with basic auth")
+		g.Log.Info("will authenticate with basic auth")
 		g.auth = &http.BasicAuth{
 			Username: user,
 			Password: pass,
@@ -30,7 +31,7 @@ func (g *Git) SetBasicAuth(user string, pass string) error {
 
 		return nil
 	}
-	fmt.Println("Will authenticate with SSH")
+	g.Log.Info("will authenticate with SSH")
 	return nil
 }
 
@@ -49,14 +50,14 @@ func (g *Git) Sync() error {
 	}
 
 	// Pull
-	fmt.Println("Pull")
+	g.Log.Info("pull")
 	err = w.Pull(&git.PullOptions{
 		RemoteName: g.RemoteName,
 		Force:      true,
 		Auth:       g.auth,
 	})
 	if err != nil {
-		fmt.Println(err)
+		g.Log.Warn(err)
 	}
 
 	return nil
@@ -93,7 +94,7 @@ func (g *Git) Push(files []string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println(status)
+	g.Log.Debug(status)
 
 	// Create Commit
 	commit, err := w.Commit(commitMsg, &git.CommitOptions{
@@ -109,10 +110,10 @@ func (g *Git) Push(files []string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println(obj)
+	g.Log.Debug(obj)
 
 	// Push
-	fmt.Println("Push")
+	g.Log.Info("push")
 	err = r.Push(&git.PushOptions{
 		RemoteName: g.RemoteName,
 		Auth:       g.auth,
@@ -122,6 +123,6 @@ func (g *Git) Push(files []string) error {
 	}
 
 	//
-	fmt.Println("Ok")
+	g.Log.Info("ok")
 	return nil
 }
