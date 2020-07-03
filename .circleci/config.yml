@@ -3,16 +3,38 @@ version: 2.1
 workflows:
   build-and-test:
     jobs:
-      - test:
+      - test-http:
+          context: OPEN_SOURCE
+          filters:
+            branches:
+              only:
+                - develop
+      - test-ssh:
           context: OPEN_SOURCE
           filters:
             branches:
               only:
                 - develop
 
+
 jobs:
   # Test
-  test:
+  test-http:
+    docker:
+      - image: quay.io/dafiti/k8s-values-updater:develop
+    steps:
+      - setup_remote_docker
+      - checkout
+      - run:
+          name: Try to commit and push
+          command: |
+            # Will remove this in the future
+            ssh-keyscan -H github.com > ~/.ssh/known_hosts
+            #
+            # Will try https
+            /k8s-values-updater bump -e d.ploy@dafiti.com.br -t $(echo ${CIRCLE_SHA1} | head -c7) --dir-path example
+
+  test-ssh:
     docker:
       - image: quay.io/dafiti/k8s-values-updater:develop
     steps:
@@ -27,13 +49,6 @@ jobs:
             # Will remove this in the future
             ssh-keyscan -H github.com > ~/.ssh/known_hosts
             #
-            # Will try https
-            # /k8s-values-updater bump -e d.ploy@dafiti.com.br -t $(echo ${CIRCLE_SHA1} | head -c7) --dir-path example
-            #
             # Remove this part when copying this snippet
             # Will try ssh
-            /k8s-values-updater bump \
-              -e d.ploy@dafiti.com.br \
-              -t $(echo ${CIRCLE_SHA1} | head -c7) \
-              --force-ssh \
-              --dir-path example
+            /k8s-values-updater bump -e d.ploy@dafiti.com.br -t $(echo ${CIRCLE_SHA1} | head -c7) --force-ssh --dir-path example
