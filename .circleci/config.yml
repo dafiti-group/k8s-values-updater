@@ -31,7 +31,6 @@ jobs:
             /k8s-values-updater bump \
               -e "d.ploy@dafiti.com.br" \
               -t "$(echo ${CIRCLE_SHA1} | head -c7)" \
-              # Remove this when copying this snippet
               --dir-path "example"
             #
             # Remove this part when copying this snippet
@@ -39,6 +38,5 @@ jobs:
             /k8s-values-updater bump \
               -e "d.ploy@dafiti.com.br" \
               -t "$(echo ${CIRCLE_SHA1} | head -c7)" \
-              # Remove this when copying this snippet
               --force-ssh \
               --dir-path "example"
