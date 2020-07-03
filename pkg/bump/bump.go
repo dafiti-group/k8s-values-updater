@@ -55,6 +55,7 @@ func (b *Bump) Run() error {
 		return err
 	}
 	//
+	pp.Println(b)
 	pp.Println(files)
 	if len(files) < 1 {
 		return fmt.Errorf("File not found")
