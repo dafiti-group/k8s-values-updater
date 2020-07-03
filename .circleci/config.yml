@@ -30,4 +30,5 @@ jobs:
               --dir-path "deploy/live" \
               --email "d.ploy@dafiti.com.br" \
               --tag "$(echo ${CIRCLE_SHA1} | head -c7)" \
+              --dir-path "example" \
               --branch "${CIRCLE_BRANCH}"
