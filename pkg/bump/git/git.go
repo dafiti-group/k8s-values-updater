@@ -15,23 +15,16 @@ type Git struct {
 	WorkDir    string
 	RemoteName string
 	Email      string
-	ForceSSH   bool
 	auth       transport.AuthMethod
 	Log        *logrus.Logger
 }
 
 // SetBasicAuth Sets the chosen auth
-func (g *Git) SetBasicAuth(user string, pass string) error {
-	if pass != "" && !g.ForceSSH {
-		g.Log.Info("will authenticate with basic auth")
-		g.auth = &http.BasicAuth{
-			Username: user,
-			Password: pass,
-		}
-
-		return nil
+func (g *Git) SetBasicAuth(pass string) error {
+	g.auth = &http.TokenAuth{
+		Token: pass,
 	}
-	g.Log.Info("will authenticate with SSH")
+
 	return nil
 }
 

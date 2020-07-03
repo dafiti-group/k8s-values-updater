@@ -30,8 +30,7 @@ import (
 var b bump.Bump
 var g git.Git
 var f file.File
-var basicAuthUser string
-var basicAuthPass string
+var githubAccesToken string
 
 // addCmd represents the add command
 var addCmd = &cobra.Command{
@@ -48,7 +47,7 @@ var addCmd = &cobra.Command{
 		}
 
 		//
-		err = b.Init(&g, &f, basicAuthUser, basicAuthPass, dryRun, logrus.New())
+		err = b.Init(&g, &f, githubAccesToken, dryRun, logrus.New())
 		if err != nil {
 			logrus.Panic(os.Stderr, err)
 			os.Exit(2)
@@ -70,11 +69,9 @@ func init() {
 	RootCmd.AddCommand(addCmd)
 
 	addCmd.PersistentFlags().BoolVarP(&f.IsRoot, "is-root", "", false, "If set will define that the values to be changed has no subchart")
-	addCmd.PersistentFlags().BoolVarP(&g.ForceSSH, "force-ssh", "", false, "Will force to use ssh otherwise will give https the preference if GITHUB_ACCESS_TOKEN IS IN PATH")
 	addCmd.PersistentFlags().StringVar(&b.DirPath, "dir-path", "deploy/*", "File Path")
 	addCmd.PersistentFlags().StringVar(&b.FileNames, "file-names", "values.yaml", "File Path")
-	addCmd.PersistentFlags().StringVar(&basicAuthPass, "auth-pass", "", "Auth PassWord")
-	addCmd.PersistentFlags().StringVar(&basicAuthUser, "auth-user", "x-access-token", "Auth User")
+	addCmd.PersistentFlags().StringVar(&githubAccesToken, "github-access-token", "", "Github Acccess Token")
 	addCmd.PersistentFlags().StringVar(&f.ChartName, "chart-name", "", "The name of the subchart")
 	addCmd.PersistentFlags().StringVar(&f.ReplaceWith, "replace-with", "", "If passed will try to merge this value with the values yaml")
 	addCmd.PersistentFlags().StringVar(&g.RemoteName, "remote-name", "origin", "")
@@ -90,7 +87,7 @@ func initBump(b *bump.Bump) {
 	v.BindEnv("GITHUB_ACCESS_TOKEN")
 
 	// Will not persist this on a struct
-	basicAuthPass = v.GetString("GITHUB_ACCESS_TOKEN")
+	githubAccesToken = v.GetString("GITHUB_ACCESS_TOKEN")
 
 	// Take the envs and load it on the struct
 	err := v.Unmarshal(b)

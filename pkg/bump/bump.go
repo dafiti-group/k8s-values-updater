@@ -24,8 +24,7 @@ type Bump struct {
 func (b *Bump) Init(
 	git *git.Git,
 	file *file.File,
-	user string,
-	pass string,
+	token string,
 	dryRun bool,
 	log *logrus.Logger,
 ) error {
@@ -40,7 +39,7 @@ func (b *Bump) Init(
 	// TODO: Validade fields
 	b.DryRun = dryRun
 
-	err := git.SetBasicAuth(user, pass)
+	err := git.SetBasicAuth(token)
 	if err != nil {
 		return err
 	}
