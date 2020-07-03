@@ -2,6 +2,8 @@ package bump
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -9,6 +11,8 @@ import (
 	git "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
+	"github.com/k0kubun/pp"
 	kyaml "sigs.k8s.io/kustomize/kyaml/yaml"
 	kyamlmerge "sigs.k8s.io/kustomize/kyaml/yaml/merge2"
 )
@@ -62,6 +66,18 @@ func (b *Bump) push(files []string) error {
 	directory := "."
 	commitMsg := "[ci skip] ci: edit values with the new image tag\n\n\nskip-checks: true"
 	name := "K8s Values Updater"
+	key := SSHKeyGet()
+
+	// refSpec := []config.RefSpec{}
+	refSpec := []config.RefSpec{
+		config.RefSpec("+refs/heads/master:refs/heads/master"),
+	}
+	// if b.Branch != "" {
+	// 	refSpec = []config.RefSpec{config.RefSpec(fmt.Sprintf("+refs/heads/%v:refs/remotes/origin/%v", b.Branch, b.Branch))}
+	// }
+	// if b.RefSpec != "" {
+	// 	refSpec = []config.RefSpec{config.RefSpec(b.RefSpec)}
+	// }
 
 	// Opens an already existing repository.
 	r, err := git.PlainOpen(directory)
@@ -74,6 +90,13 @@ func (b *Bump) push(files []string) error {
 		return err
 	}
 
+	c, err := r.Config()
+	if err != nil {
+		return err
+	}
+	pp.Println(c.Branches)
+
+	// Add
 	for _, f := range files {
 		_, err = w.Add(f)
 		if err != nil {
@@ -102,42 +125,34 @@ func (b *Bump) push(files []string) error {
 
 	fmt.Println(obj)
 
-	refSpec := []config.RefSpec{}
-	if b.Branch != "" {
-		refSpec = []config.RefSpec{config.RefSpec(fmt.Sprintf("+refs/heads/%v:refs/remotes/origin/%v", b.Branch, b.Branch))}
-	}
-	if b.RefSpec != "" {
-		refSpec = []config.RefSpec{config.RefSpec(b.RefSpec)}
-	}
-
 	fmt.Println("Fetch")
 	err = r.Fetch(&git.FetchOptions{
 		RemoteName: b.RemoteName,
-		Force:      true,
+		RefSpecs:   refSpec,
 	})
 	if err != nil {
-		fmt.Println(err)
+		return err
 	}
 
-	fmt.Println("Pull")
-	err = w.Pull(&git.PullOptions{
+	// fmt.Println("Pull")
+	// err = w.Pull(&git.PullOptions{
+	// 	RemoteName: b.RemoteName,
+	// 	Force:      true,
+	// })
+	// if err != nil {
+	// 	fmt.Println(err)
+	// }
+
+	fmt.Println("Push")
+	err = r.Push(&git.PushOptions{
 		RemoteName: b.RemoteName,
-		Force:      true,
+		RefSpecs:   refSpec,
+		Auth:       key,
 	})
 	if err != nil {
-		fmt.Println(err)
+		return err
 	}
 
-	if !b.DryRun {
-		fmt.Println("Push")
-		err = r.Push(&git.PushOptions{
-			RemoteName: b.RemoteName,
-			RefSpecs:   refSpec,
-		})
-		if err != nil {
-			return err
-		}
-	}
 	fmt.Println("Ok")
 	return nil
 }
@@ -197,4 +212,15 @@ func (b *Bump) bump(filePath string) error {
 
 func (b *Bump) HasNoChanges() bool {
 	return b.Before == b.After
+}
+
+func SSHKeyGet() *ssh.PublicKeys {
+	var publicKey *ssh.PublicKeys
+	sshPath := os.Getenv("HOME") + "/.ssh/id_rsa"
+	sshKey, _ := ioutil.ReadFile(sshPath)
+	publicKey, keyError := ssh.NewPublicKeys("git", []byte(sshKey), "")
+	if keyError != nil {
+		fmt.Println(keyError)
+	}
+	return publicKey
 }
