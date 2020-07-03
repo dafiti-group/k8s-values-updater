@@ -90,11 +90,21 @@ func (b *Bump) push(files []string) error {
 		return err
 	}
 
-	c, err := r.Config()
+	// c, err := r.Config()
+	// if err != nil {
+	// 	return err
+	// }
+
+	ref, err := r.Head()
 	if err != nil {
 		return err
 	}
-	pp.Println(c.Branches)
+
+	c, err := r.CommitObject(ref.Hash())
+	if err != nil {
+		return err
+	}
+	pp.Println(c)
 
 	// Add
 	for _, f := range files {
