@@ -4,11 +4,14 @@ workflows:
   build-and-test:
     jobs:
       - build
+      - test:
+          requires:
+            - build
 
 jobs:
   build:
     docker:
-      - image: golang:alpine
+      - image: docker
     steps:
       - checkout
       - setup_remote_docker
