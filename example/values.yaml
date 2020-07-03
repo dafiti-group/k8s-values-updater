@@ -3,4 +3,4 @@ some-chart:
   image:
     somethingThatShouldKeepThatSame: true
     tag: "4"
-    pullRequestId: "9"
+    pullRequestId: "10"
