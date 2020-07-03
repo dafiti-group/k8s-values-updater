@@ -10,12 +10,10 @@ workflows:
               only:
                 - develop
       - test-ssh:
-          context: OPEN_SOURCE
           filters:
             branches:
               only:
                 - develop
-
 
 jobs:
   # Test
