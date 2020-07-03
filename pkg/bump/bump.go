@@ -2,9 +2,6 @@ package bump
 
 import (
 	"fmt"
-	"io/ioutil"
-	"os"
-	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -12,7 +9,6 @@ import (
 	git "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
-	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
 	kyaml "sigs.k8s.io/kustomize/kyaml/yaml"
 	kyamlmerge "sigs.k8s.io/kustomize/kyaml/yaml/merge2"
 )
@@ -237,18 +233,18 @@ func (b *Bump) SetBasicAuth(user string, pass string) error {
 		}
 	} else {
 		fmt.Println("Will authenticate with SSH")
-		sshPath := path.Join(os.Getenv("HOME"), ".ssh", "id_rsa")
+		// sshPath := path.Join(os.Getenv("HOME"), ".ssh", "id_rsa")
 
-		sshKey, err := ioutil.ReadFile(sshPath)
-		if err != nil {
-			return err
-		}
+		// sshKey, err := ioutil.ReadFile(sshPath)
+		// if err != nil {
+		// 	return err
+		// }
 
-		key, err := ssh.NewPublicKeys("git", []byte(sshKey), "")
-		if err != nil {
-			return err
-		}
-		b.auth = key
+		// key, err := ssh.NewPublicKeys("git", []byte(sshKey), "")
+		// if err != nil {
+		// 	return err
+		// }
+		// b.auth = key
 	}
 
 	return nil
