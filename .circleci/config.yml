@@ -26,6 +26,7 @@ jobs:
           command: |
             # Will remove this in the future
             ssh-keyscan -H github.com > ~/.ssh/known_hosts
+            ls
             #
             # Will try https
             /k8s-values-updater bump \
