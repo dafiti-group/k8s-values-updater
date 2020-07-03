@@ -58,5 +58,4 @@ func init() {
 	addCmd.PersistentFlags().StringVar(&b.Tag, "tag", "", "Image Tag")
 	addCmd.PersistentFlags().StringVar(&b.RefSpec, "refspec", "", "refspec")
 	addCmd.PersistentFlags().StringVar(&b.Branch, "branch", "", "branch (required)")
-	addCmd.MarkPersistentFlagRequired("branch")
 }

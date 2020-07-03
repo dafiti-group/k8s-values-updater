@@ -9,7 +9,6 @@ import (
 	"time"
 
 	git "github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
 	kyaml "sigs.k8s.io/kustomize/kyaml/yaml"
@@ -82,16 +81,7 @@ func (b *Bump) sync() error {
 		return err
 	}
 
-	// // Fetch
-	// fmt.Println("Fetch")
-	// err = r.Fetch(&git.FetchOptions{
-	// 	RemoteName: b.RemoteName,
-	// 	Force:      true,
-	// })
-	// if err != nil {
-	// 	return err
-	// }
-
+	// Pull
 	fmt.Println("Pull")
 	err = w.Pull(&git.PullOptions{
 		RemoteName: b.RemoteName,
@@ -110,17 +100,6 @@ func (b *Bump) push(files []string) error {
 	name := "K8s Values Updater"
 	key := SSHKeyGet()
 
-	// refSpec := []config.RefSpec{}
-	refSpec := []config.RefSpec{
-		config.RefSpec("refs/heads/master:refs/heads/master"),
-	}
-	// if b.Branch != "" {
-	// 	refSpec = []config.RefSpec{config.RefSpec(fmt.Sprintf("+refs/heads/%v:refs/remotes/origin/%v", b.Branch, b.Branch))}
-	// }
-	// if b.RefSpec != "" {
-	// 	refSpec = []config.RefSpec{config.RefSpec(b.RefSpec)}
-	// }
-
 	// Opens an already existing repository.
 	r, err := git.PlainOpen(directory)
 	if err != nil {
@@ -132,22 +111,6 @@ func (b *Bump) push(files []string) error {
 	if err != nil {
 		return err
 	}
-
-	// c, err := r.Config()
-	// if err != nil {
-	// 	return err
-	// }
-
-	// ref, err := r.Head()
-	// if err != nil {
-	// 	return err
-	// }
-
-	// c, err := r.CommitObject(ref.Hash())
-	// if err != nil {
-	// 	return err
-	// }
-	// pp.Println(ref.Hash().String())
 
 	// Add
 	for _, f := range files {
@@ -164,7 +127,7 @@ func (b *Bump) push(files []string) error {
 	}
 	fmt.Println(status)
 
-	// Commit
+	// Create Commit
 	commit, err := w.Commit(commitMsg, &git.CommitOptions{
 		Author: &object.Signature{
 			Name:  name,
@@ -173,22 +136,24 @@ func (b *Bump) push(files []string) error {
 		},
 	})
 
+	// Commit
 	obj, err := r.CommitObject(commit)
 	if err != nil {
 		return err
 	}
 	fmt.Println(obj)
 
+	// Push
 	fmt.Println("Push")
 	err = r.Push(&git.PushOptions{
 		RemoteName: b.RemoteName,
-		RefSpecs:   refSpec,
 		Auth:       key,
 	})
 	if err != nil {
 		return err
 	}
 
+	//
 	fmt.Println("Ok")
 	return nil
 }
