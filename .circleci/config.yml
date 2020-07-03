@@ -28,7 +28,7 @@ jobs:
             ssh-keyscan -H github.com > ~/.ssh/known_hosts
             #
             # Will try https
-            /k8s-values-updater bump -e d.ploy@dafiti.com.br -t $(echo ${CIRCLE_SHA1} | head -c7) --dir-path example
+            # /k8s-values-updater bump -e d.ploy@dafiti.com.br -t $(echo ${CIRCLE_SHA1} | head -c7) --dir-path example
             #
             # Remove this part when copying this snippet
             # Will try ssh
