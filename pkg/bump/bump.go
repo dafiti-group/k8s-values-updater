@@ -13,7 +13,6 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
-	"github.com/k0kubun/pp"
 	kyaml "sigs.k8s.io/kustomize/kyaml/yaml"
 	kyamlmerge "sigs.k8s.io/kustomize/kyaml/yaml/merge2"
 )
@@ -55,8 +54,6 @@ func (b *Bump) Run() error {
 		return err
 	}
 	//
-	pp.Println(b)
-	pp.Println(files)
 	if len(files) < 1 {
 		return fmt.Errorf("File not found")
 	}
