@@ -12,11 +12,11 @@ import (
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
-	"github.com/k0kubun/pp"
 	kyaml "sigs.k8s.io/kustomize/kyaml/yaml"
 	kyamlmerge "sigs.k8s.io/kustomize/kyaml/yaml/merge2"
 )
 
+// https://github.com/divramod/dp/blob/master/utils/git/main.go
 func (b *Bump) Files() ([]string, error) {
 	r := []string{}
 
@@ -70,7 +70,7 @@ func (b *Bump) push(files []string) error {
 
 	// refSpec := []config.RefSpec{}
 	refSpec := []config.RefSpec{
-		config.RefSpec("+refs/heads/master:refs/heads/master"),
+		config.RefSpec("refs/heads/master:refs/heads/master"),
 	}
 	// if b.Branch != "" {
 	// 	refSpec = []config.RefSpec{config.RefSpec(fmt.Sprintf("+refs/heads/%v:refs/remotes/origin/%v", b.Branch, b.Branch))}
@@ -85,9 +85,28 @@ func (b *Bump) push(files []string) error {
 		return err
 	}
 
+	// Get WorkTree
 	w, err := r.Worktree()
 	if err != nil {
 		return err
+	}
+
+	// Fetch
+	fmt.Println("Fetch")
+	err = r.Fetch(&git.FetchOptions{
+		RemoteName: b.RemoteName,
+		RefSpecs:   refSpec,
+	})
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("Pull")
+	err = w.Pull(&git.PullOptions{
+		RemoteName: b.RemoteName,
+	})
+	if err != nil {
+		fmt.Println(err)
 	}
 
 	// c, err := r.Config()
@@ -95,16 +114,16 @@ func (b *Bump) push(files []string) error {
 	// 	return err
 	// }
 
-	ref, err := r.Head()
-	if err != nil {
-		return err
-	}
+	// ref, err := r.Head()
+	// if err != nil {
+	// 	return err
+	// }
 
-	c, err := r.CommitObject(ref.Hash())
-	if err != nil {
-		return err
-	}
-	pp.Println(c)
+	// c, err := r.CommitObject(ref.Hash())
+	// if err != nil {
+	// 	return err
+	// }
+	// pp.Println(ref.Hash().String())
 
 	// Add
 	for _, f := range files {
@@ -114,12 +133,14 @@ func (b *Bump) push(files []string) error {
 		}
 	}
 
+	// Status
 	status, err := w.Status()
 	if err != nil {
 		return err
 	}
-
 	fmt.Println(status)
+
+	// Commit
 	commit, err := w.Commit(commitMsg, &git.CommitOptions{
 		Author: &object.Signature{
 			Name:  name,
@@ -132,26 +153,7 @@ func (b *Bump) push(files []string) error {
 	if err != nil {
 		return err
 	}
-
 	fmt.Println(obj)
-
-	fmt.Println("Fetch")
-	err = r.Fetch(&git.FetchOptions{
-		RemoteName: b.RemoteName,
-		RefSpecs:   refSpec,
-	})
-	if err != nil {
-		return err
-	}
-
-	// fmt.Println("Pull")
-	// err = w.Pull(&git.PullOptions{
-	// 	RemoteName: b.RemoteName,
-	// 	Force:      true,
-	// })
-	// if err != nil {
-	// 	fmt.Println(err)
-	// }
 
 	fmt.Println("Push")
 	err = r.Push(&git.PushOptions{
