@@ -1,5 +1,7 @@
 package bump
 
+import "github.com/go-git/go-git/v5/plumbing/transport"
+
 type Bump struct {
 	DirPath     string
 	FileNames   string
@@ -15,6 +17,8 @@ type Bump struct {
 	PrID        string
 	Before      string
 	After       string
+	auth        transport.AuthMethod
+	ForceSSH    bool
 }
 
 type defaultValue struct {

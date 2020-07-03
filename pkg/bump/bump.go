@@ -4,18 +4,31 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"time"
 
 	git "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
 	kyaml "sigs.k8s.io/kustomize/kyaml/yaml"
 	kyamlmerge "sigs.k8s.io/kustomize/kyaml/yaml/merge2"
 )
 
 var directory = "."
+
+func (b *Bump) Init(user string, pass string, dryRun bool) error {
+	// TODO: Validade fields
+	b.DryRun = dryRun
+
+	err := b.SetBasicAuth(user, pass)
+	if err != nil {
+		return err
+	}
+	return nil
+}
 
 // https://github.com/divramod/dp/blob/master/utils/git/main.go
 func (b *Bump) Files() ([]string, error) {
@@ -86,6 +99,7 @@ func (b *Bump) sync() error {
 	err = w.Pull(&git.PullOptions{
 		RemoteName: b.RemoteName,
 		Force:      true,
+		Auth:       b.auth,
 	})
 	if err != nil {
 		fmt.Println(err)
@@ -98,7 +112,6 @@ func (b *Bump) push(files []string) error {
 	//
 	commitMsg := "[ci skip] ci: edit values with the new image tag\n\n\nskip-checks: true"
 	name := "K8s Values Updater"
-	key := SSHKeyGet()
 
 	// Opens an already existing repository.
 	r, err := git.PlainOpen(directory)
@@ -147,7 +160,7 @@ func (b *Bump) push(files []string) error {
 	fmt.Println("Push")
 	err = r.Push(&git.PushOptions{
 		RemoteName: b.RemoteName,
-		Auth:       key,
+		Auth:       b.auth,
 	})
 	if err != nil {
 		return err
@@ -215,13 +228,28 @@ func (b *Bump) HasNoChanges() bool {
 	return b.Before == b.After
 }
 
-func SSHKeyGet() *ssh.PublicKeys {
-	var publicKey *ssh.PublicKeys
-	sshPath := os.Getenv("HOME") + "/.ssh/id_rsa"
-	sshKey, _ := ioutil.ReadFile(sshPath)
-	publicKey, keyError := ssh.NewPublicKeys("git", []byte(sshKey), "")
-	if keyError != nil {
-		fmt.Println(keyError)
+func (b *Bump) SetBasicAuth(user string, pass string) error {
+	if pass != "" && !b.ForceSSH {
+		fmt.Println("Will authenticate with basic auth")
+		b.auth = &http.BasicAuth{
+			Username: user,
+			Password: pass,
+		}
+	} else {
+		fmt.Println("Will authenticate with SSH")
+		sshPath := path.Join(os.Getenv("HOME"), ".ssh", "id_rsa")
+
+		sshKey, err := ioutil.ReadFile(sshPath)
+		if err != nil {
+			return err
+		}
+
+		key, err := ssh.NewPublicKeys("git", []byte(sshKey), "")
+		if err != nil {
+			return err
+		}
+		b.auth = key
 	}
-	return publicKey
+
+	return nil
 }
