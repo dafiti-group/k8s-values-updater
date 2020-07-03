@@ -1,0 +1,40 @@
+version: 2.1
+
+workflows:
+  build-and-test:
+    jobs:
+      - build
+
+jobs:
+  build:
+    docker:
+      - image: golang:alpine
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Build
+          command: |
+            docker build -t quay.io/dafiti/k8s-values-updater:circle .
+
+  # Deploy to live
+  test:
+    docker:
+      - image: quay.io/dafiti/k8s-values-updater:circle
+    steps:
+      - add_ssh_keys:
+          fingerprints:
+            - "6d:7c:18:f4:01:f1:f4:d2:70:7c:83:cc:0c:ac:f6:a5"
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Try to commit and push
+          command: |
+            # Will remove this in the future
+            ssh-keyscan -H github.com > ~/.ssh/known_hosts
+            # Will update the key pullRequestID on every values file
+            /k8s-values-updater bump \
+              --dir-path "deploy/live" \
+              --email "d.ploy@dafiti.com.br" \
+              --tag "$(echo ${CIRCLE_SHA1} | head -c7)" \
+              --branch "${CIRCLE_BRANCH}"
