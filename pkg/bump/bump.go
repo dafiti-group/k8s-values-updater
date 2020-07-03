@@ -82,15 +82,15 @@ func (b *Bump) sync() error {
 		return err
 	}
 
-	// Fetch
-	fmt.Println("Fetch")
-	err = r.Fetch(&git.FetchOptions{
-		RemoteName: b.RemoteName,
-		Force:      true,
-	})
-	if err != nil {
-		return err
-	}
+	// // Fetch
+	// fmt.Println("Fetch")
+	// err = r.Fetch(&git.FetchOptions{
+	// 	RemoteName: b.RemoteName,
+	// 	Force:      true,
+	// })
+	// if err != nil {
+	// 	return err
+	// }
 
 	fmt.Println("Pull")
 	err = w.Pull(&git.PullOptions{
