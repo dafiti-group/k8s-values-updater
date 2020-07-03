@@ -16,6 +16,8 @@ import (
 	kyamlmerge "sigs.k8s.io/kustomize/kyaml/yaml/merge2"
 )
 
+var directory = "."
+
 // https://github.com/divramod/dp/blob/master/utils/git/main.go
 func (b *Bump) Files() ([]string, error) {
 	r := []string{}
@@ -44,26 +46,66 @@ func (b *Bump) Run() error {
 		return fmt.Errorf("File not found")
 	}
 	//
+	if err = b.sync(); err != nil {
+		return err
+	}
+	//
 	for _, v := range files {
 		if err = b.bump(v); err != nil {
 			return err
 		}
 	}
 
+	//
 	if b.HasNoChanges() {
 		fmt.Println("Nothing Changed")
 		return nil
 	}
 
+	//
 	if err = b.push(files); err != nil {
 		return err
 	}
 
 	return nil
 }
+func (b *Bump) sync() error {
+	// Opens an already existing repository.
+	r, err := git.PlainOpen(directory)
+	if err != nil {
+		return err
+	}
+
+	// Get WorkTree
+	w, err := r.Worktree()
+	if err != nil {
+		return err
+	}
+
+	// Fetch
+	fmt.Println("Fetch")
+	err = r.Fetch(&git.FetchOptions{
+		RemoteName: b.RemoteName,
+		Force:      true,
+	})
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("Pull")
+	err = w.Pull(&git.PullOptions{
+		RemoteName: b.RemoteName,
+		Force:      true,
+	})
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	return nil
+}
+
 func (b *Bump) push(files []string) error {
 	//
-	directory := "."
 	commitMsg := "[ci skip] ci: edit values with the new image tag\n\n\nskip-checks: true"
 	name := "K8s Values Updater"
 	key := SSHKeyGet()
@@ -89,24 +131,6 @@ func (b *Bump) push(files []string) error {
 	w, err := r.Worktree()
 	if err != nil {
 		return err
-	}
-
-	// Fetch
-	fmt.Println("Fetch")
-	err = r.Fetch(&git.FetchOptions{
-		RemoteName: b.RemoteName,
-		RefSpecs:   refSpec,
-	})
-	if err != nil {
-		return err
-	}
-
-	fmt.Println("Pull")
-	err = w.Pull(&git.PullOptions{
-		RemoteName: b.RemoteName,
-	})
-	if err != nil {
-		fmt.Println(err)
 	}
 
 	// c, err := r.Config()
