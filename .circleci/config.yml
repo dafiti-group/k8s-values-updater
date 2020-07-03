@@ -16,17 +16,16 @@ jobs:
     docker:
       - image: quay.io/dafiti/k8s-values-updater:develop
     steps:
+      - setup_remote_docker
       - add_ssh_keys:
           fingerprints:
             - "79:4a:52:b0:4f:1a:29:46:5d:a6:f2:77:9d:7b:77:3a"
       - checkout
-      - setup_remote_docker
       - run:
           name: Try to commit and push
           command: |
             # Will remove this in the future
             ssh-keyscan -H github.com > ~/.ssh/known_hosts
-            ls
             #
             # Will try https
             /k8s-values-updater bump \
