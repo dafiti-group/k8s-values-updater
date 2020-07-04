@@ -1,12 +1,21 @@
 package git
 
 import (
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
+	"github.com/go-git/go-billy/v5"
+	"github.com/go-git/go-billy/v5/memfs"
+	"github.com/go-git/go-billy/v5/util"
 	git "github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
+	"github.com/go-git/go-git/v5/storage/memory"
 	"github.com/sirupsen/logrus"
 )
 
@@ -15,14 +24,57 @@ type Git struct {
 	WorkDir    string
 	RemoteName string
 	Email      string
+	Clone      bool
 	auth       transport.AuthMethod
+	URL        string
+	Branch     string
 	Log        *logrus.Logger
+	repo       *git.Repository
+	worktree   *git.Worktree
+	fs         billy.Filesystem
+	files      []billy.File
+	filePaths  []string
 }
 
-// SetBasicAuth Sets the chosen auth
-func (g *Git) SetBasicAuth(pass string) error {
-	g.auth = &http.TokenAuth{
-		Token: pass,
+var commitMsg = "[ci skip] ci: edit values with the new image tag\n\n\nskip-checks: true"
+var name = "K8s Values Updater"
+
+// Init ...
+func (g *Git) Init(token string, fileNames string, dirPath string, separator string) (err error) {
+	// Start In memory storage
+	g.fs = memfs.New()
+
+	// Set Basic Auth
+	g.auth = &http.BasicAuth{
+		Username: "x-access-token", // yes, this can be anything except an empty string
+		Password: token,
+	}
+
+	g.Log.Info("Cloning")
+	repo, err := git.Clone(memory.NewStorage(), g.fs, &git.CloneOptions{
+		URL:           g.URL,
+		Auth:          g.auth,
+		SingleBranch:  true,
+		ReferenceName: plumbing.NewBranchReferenceName(g.Branch),
+	})
+	if err != nil {
+		return err
+	}
+
+	// Get WorkTree
+	worktree, err := repo.Worktree()
+	if err != nil {
+		return err
+	}
+
+	// Store Repo and Worktree
+	g.repo = repo
+	g.worktree = worktree
+
+	// Get The Files
+	err = g.GetFiles(dirPath, fileNames, separator)
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -30,21 +82,9 @@ func (g *Git) SetBasicAuth(pass string) error {
 
 // Sync will force pull any changes
 func (g *Git) Sync() error {
-	// Opens an already existing repository.
-	r, err := git.PlainOpen(g.WorkDir)
-	if err != nil {
-		return err
-	}
-
-	// Get WorkTree
-	w, err := r.Worktree()
-	if err != nil {
-		return err
-	}
-
 	// Pull
 	g.Log.Info("pull")
-	err = w.Pull(&git.PullOptions{
+	err := g.worktree.Pull(&git.PullOptions{
 		RemoteName: g.RemoteName,
 		Force:      true,
 		Auth:       g.auth,
@@ -57,40 +97,39 @@ func (g *Git) Sync() error {
 }
 
 // Push will send any changes
-func (g *Git) Push(files []string) error {
-	//
-	commitMsg := "[ci skip] ci: edit values with the new image tag\n\n\nskip-checks: true"
-	name := "K8s Values Updater"
+func (g *Git) Push(fs billy.Filesystem) error {
+	for _, fileName := range g.filePaths {
+		file, err := fs.Open(fileName)
+		if err != nil {
+			return err
+		}
 
-	// Opens an already existing repository.
-	r, err := git.PlainOpen(g.WorkDir)
-	if err != nil {
-		return err
-	}
+		b, err := ioutil.ReadAll(file)
+		if err != nil {
+			return err
+		}
 
-	// Get WorkTree
-	w, err := r.Worktree()
-	if err != nil {
-		return err
-	}
+		err = util.WriteFile(g.fs, fileName, []byte(b), os.ModePerm)
+		if err != nil {
+			return err
+		}
 
-	// Add
-	for _, f := range files {
-		_, err = w.Add(f)
+		// Add
+		_, err = g.worktree.Add(fileName)
 		if err != nil {
 			return err
 		}
 	}
 
 	// Status
-	status, err := w.Status()
+	status, err := g.worktree.Status()
 	if err != nil {
 		return err
 	}
-	g.Log.Debug(status)
+	g.Log.Info(status)
 
 	// Create Commit
-	commit, err := w.Commit(commitMsg, &git.CommitOptions{
+	commit, err := g.worktree.Commit(commitMsg, &git.CommitOptions{
 		Author: &object.Signature{
 			Name:  name,
 			Email: g.Email,
@@ -99,15 +138,14 @@ func (g *Git) Push(files []string) error {
 	})
 
 	// Commit
-	obj, err := r.CommitObject(commit)
+	_, err = g.repo.CommitObject(commit)
 	if err != nil {
 		return err
 	}
-	g.Log.Debug(obj)
 
 	// Push
 	g.Log.Info("push")
-	err = r.Push(&git.PushOptions{
+	err = g.repo.Push(&git.PushOptions{
 		RemoteName: g.RemoteName,
 		Auth:       g.auth,
 	})
@@ -115,7 +153,39 @@ func (g *Git) Push(files []string) error {
 		return err
 	}
 
-	//
-	g.Log.Info("ok")
+	g.Log.Info("push success")
+	return nil
+}
+
+// Files ...
+func (g *Git) Files() []billy.File {
+	return g.files
+}
+
+// GetFiles ...
+func (g *Git) GetFiles(dir string, names string, separator string) error {
+	filePaths := []string{}
+
+	// Get the name of the files we will be working
+	for _, fileName := range strings.Split(names, separator) {
+		filePaths = append(g.filePaths, filepath.Join(dir, fileName))
+	}
+
+	// Loop Trough file names and get the actual files
+	for _, filePath := range filePaths {
+		matches, err := util.Glob(g.fs, filePath)
+		if err != nil {
+			return err
+		}
+		for _, match := range matches {
+			g.filePaths = append(g.filePaths, match)
+			f, err := g.fs.Open(match)
+			if err != nil {
+				return err
+			}
+			g.files = append(g.files, f)
+		}
+	}
+
 	return nil
 }

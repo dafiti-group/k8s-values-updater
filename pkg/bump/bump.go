@@ -2,8 +2,6 @@ package bump
 
 import (
 	"fmt"
-	"path/filepath"
-	"strings"
 
 	file "github.com/dafiti-group/k8s-values-updater/pkg/bump/file"
 	git "github.com/dafiti-group/k8s-values-updater/pkg/bump/git"
@@ -39,64 +37,52 @@ func (b *Bump) Init(
 	// TODO: Validade fields
 	b.DryRun = dryRun
 
-	err := git.SetBasicAuth(token)
+	git.Branch = "feature/auth-only-with-https"
+	git.URL = "https://github.com/dafiti-group/k8s-values-updater.git"
+
+	separator := ","
+	err := git.Init(token, b.FileNames, b.DirPath, separator)
 	if err != nil {
 		return err
 	}
+
+	err = file.Init()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
 // Run ...
 func (b *Bump) Run() error {
-	files, err := b.files()
-	if err != nil {
+	//
+	if err := b.git.Sync(); err != nil {
 		return err
 	}
+
 	//
+	files := b.git.Files()
+
 	if len(files) < 1 {
 		return fmt.Errorf("file not found")
 	}
 
 	//
-	if err = b.git.Sync(); err != nil {
-		return err
-	}
-
-	//
 	for _, f := range files {
-		if err = b.file.Bump(f); err != nil {
+		if err := b.file.Bump(f); err != nil {
 			return err
 		}
 	}
 
-	//
-	if b.file.HasNoChanges() {
-		b.Log.Info("nothing Changed will not push")
+	if !b.file.HasChanges() {
+		b.Log.Info("nothing changed")
 		return nil
 	}
 
-	//
-	if err = b.git.Push(files); err != nil {
+	if err := b.git.Push(b.file.GetChanges()); err != nil {
 		return err
 	}
 
 	return nil
-}
-
-// https://github.com/divramod/dp/blob/master/utils/git/main.go
-func (b *Bump) files() ([]string, error) {
-	r := []string{}
-
-	for _, v := range strings.Split(b.FileNames, ",") {
-		f := filepath.Join(b.DirPath, v)
-		matches, err := filepath.Glob(f)
-		if err != nil {
-			return nil, err
-		}
-		for _, v = range matches {
-			r = append(r, v)
-		}
-	}
-	b.Log.Debug(r)
-	return r, nil
 }

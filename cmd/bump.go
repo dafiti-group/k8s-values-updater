@@ -79,6 +79,10 @@ func init() {
 	addCmd.PersistentFlags().StringVarP(&f.Tag, "tag", "t", "", "Image Tag")
 	addCmd.PersistentFlags().StringVarP(&g.Email, "email", "e", "k8s-values-updater@mailinator.com", "Email that will commit")
 	addCmd.PersistentFlags().StringVarP(&g.WorkDir, "workdir", "w", ".", "Workdir")
+
+	// addCmd.MarkPersistentFlagRequired("branch")
+	// addCmd.MarkPersistentFlagRequired("github-access-token")
+	// addCmd.MarkPersistentFlagRequired("url")
 }
 
 func initBump(b *bump.Bump) {

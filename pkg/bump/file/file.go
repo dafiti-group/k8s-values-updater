@@ -1,32 +1,51 @@
 package file
 
 import (
+	"io/ioutil"
+	"os"
+
 	"github.com/sirupsen/logrus"
+
+	"github.com/go-git/go-billy/v5"
+	"github.com/go-git/go-billy/v5/memfs"
+	"github.com/go-git/go-billy/v5/util"
 	kyaml "sigs.k8s.io/kustomize/kyaml/yaml"
 	kyamlmerge "sigs.k8s.io/kustomize/kyaml/yaml/merge2"
 )
 
 type File struct {
-	IsRoot      bool
-	ChartName   string
-	ReplaceWith string
-	Tag         string
-	PrID        string
-	before      string
-	after       string
-	Log         *logrus.Logger
+	IsRoot       bool
+	ChartName    string
+	ReplaceWith  string
+	Tag          string
+	PrID         string
+	Log          *logrus.Logger
+	changedFiles billy.Filesystem
+	changes      int
 }
 
 //
-func (f *File) Bump(filePath string) error {
-	// Read file
-	o, err := kyaml.ReadFile(filePath)
+func (f *File) Init() error {
+	f.changedFiles = memfs.New()
+	f.changes = 0
+	return nil
+}
+
+func (f *File) Bump(ioFile billy.File) error {
+	// Convert fs file into buffer
+	b, err := ioutil.ReadAll(ioFile)
+	if err != nil {
+		return err
+	}
+
+	// Parse File
+	parsedFile, err := kyaml.Parse(string(b))
 	if err != nil {
 		return err
 	}
 
 	// Get Chart root fields
-	charts, err := o.Fields()
+	charts, err := parsedFile.Fields()
 	if err != nil {
 		return err
 	}
@@ -38,45 +57,50 @@ func (f *File) Bump(filePath string) error {
 	}
 
 	// Parse into a kuztomize yaml
-	src, err := kyaml.Parse(values)
+	parsedValues, err := kyaml.Parse(values)
 	if err != nil {
 		return err
 	}
 
 	// BKP For future compare
-	f.before, err = o.String()
-	if err != nil {
-		return nil
-	}
-
-	// Merge
-	_, err = kyamlmerge.Merge(src, o)
+	before, err := parsedFile.String()
 	if err != nil {
 		return err
 	}
 
-	// Save resulr for future compare
-	f.after, err = o.String()
+	// Merge
+	_, err = kyamlmerge.Merge(parsedValues, parsedFile)
 	if err != nil {
-		return nil
+		return err
 	}
 
-	// If Nothing Changed do nothinb
-	if f.HasNoChanges() {
+	// Save result for future compare
+	after, err := parsedFile.String()
+	if err != nil {
+		return err
+	}
+
+	// If Nothing Changed do nothing
+	if before == after {
 		f.Log.Info("nothing changed, no file will be altered")
 		return nil
 	}
 
-	// Save File
-	err = kyaml.WriteFile(o, filePath)
+	// Create file
+	err = util.WriteFile(f.changedFiles, ioFile.Name(), []byte(after), os.ModePerm)
 	if err != nil {
 		return err
 	}
 
+	// Increment a changes helper
+	f.changes += 1
+
 	return nil
 }
 
-// HasNoChanges Return true if nothing in the file changed
-func (f *File) HasNoChanges() bool {
-	return f.before == f.after
+func (f *File) HasChanges() bool {
+	return f.changes >= 1
+}
+func (f *File) GetChanges() billy.Filesystem {
+	return f.changedFiles
 }
