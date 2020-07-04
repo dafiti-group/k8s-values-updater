@@ -19,6 +19,7 @@ type Bump struct {
 }
 
 // Init ...
+// TODO: Validade fields
 func (b *Bump) Init(
 	git *git.Git,
 	file *file.File,
@@ -26,15 +27,16 @@ func (b *Bump) Init(
 	dryRun bool,
 	log *logrus.Logger,
 ) error {
-
-	// Initizali logger
+	// Initialize logger
 	git.Log = log
 	file.Log = log
 	b.Log = log
 
+	// Initialize Deps
 	b.git = git
 	b.file = file
-	// TODO: Validade fields
+
+	// Initialize Params from root
 	b.DryRun = dryRun
 
 	git.Branch = "feature/auth-only-with-https"
@@ -56,10 +58,10 @@ func (b *Bump) Init(
 
 // Run ...
 func (b *Bump) Run() error {
-	//
-	if err := b.git.Sync(); err != nil {
-		return err
-	}
+	// //
+	// if err := b.git.Sync(); err != nil {
+	// 	return err
+	// }
 
 	//
 	files := b.git.Files()

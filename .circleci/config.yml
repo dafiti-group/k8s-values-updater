@@ -13,11 +13,12 @@ jobs:
   # Test
   test:
     docker:
-      - image: quay.io/dafiti/k8s-values-updater:develop
+      - image: quay.io/dafiti/k8s-values-updater:feature_auth-only-with-https
     steps:
       - setup_remote_docker
-      - checkout
       - run:
           name: Try to commit and push
           command: |
+            env
+
             /k8s-values-updater bump -e d.ploy@dafiti.com.br -t $(echo ${CIRCLE_SHA1} | head -c7) --dir-path example
