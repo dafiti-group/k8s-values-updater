@@ -39,8 +39,13 @@ func (b *Bump) Init(
 	// Initialize Params from root
 	b.DryRun = dryRun
 
-	git.Branch = "feature/auth-only-with-https"
-	git.URL = "https://github.com/dafiti-group/k8s-values-updater.git"
+	// git.Branch = "feature/auth-only-with-https"
+	// git.URL = "https://github.com/dafiti-group/k8s-values-updater.git"
+
+	b.Log.Info(
+		"branch", b.git.Branch,
+		"url", b.git.URL,
+	)
 
 	separator := ","
 	err := git.Init(token, b.FileNames, b.DirPath, separator)

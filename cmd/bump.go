@@ -31,6 +31,9 @@ var b bump.Bump
 var g git.Git
 var f file.File
 var githubAccesToken string
+var branch string
+var org string
+var repo string
 
 // addCmd represents the add command
 var addCmd = &cobra.Command{
@@ -38,11 +41,26 @@ var addCmd = &cobra.Command{
 	Short: "Bump value on file",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-
 		//
 		dryRun, err := cmd.Flags().GetBool("dry-run")
 		if err != nil {
 			logrus.Panic(os.Stderr, err)
+			os.Exit(2)
+		}
+
+		// Refactor this
+		if g.Branch == "" && branch != "" {
+			g.Branch = branch
+		}
+		if g.URL == "" && repo != "" && org != "" {
+			g.URL = fmt.Sprintf(
+				"https://github.com/%v/%v.git",
+				org,
+				repo,
+			)
+		}
+		if g.Branch == "" || g.URL == "" {
+			logrus.Panic(os.Stderr, "Branch and URL are required")
 			os.Exit(2)
 		}
 
@@ -89,9 +107,18 @@ func initBump(b *bump.Bump) {
 	v := viper.New()
 	// TODO: Maybe set some default envs
 	v.BindEnv("GITHUB_ACCESS_TOKEN")
+	v.BindEnv("CIRCLE_PROJECT_USERNAME")
+	v.BindEnv("CIRCLE_BRANCH")
+	v.BindEnv("CIRCLE_PROJECT_REPONAME")
+	// CIRCLE_PROJECT_USERNAME=dafiti-group
+	// CIRCLE_PROJECT_REPONAME=k8s-values-updater
+	// CIRCLE_BRANCH=feature/auth-only-with-https
 
 	// Will not persist this on a struct
 	githubAccesToken = v.GetString("GITHUB_ACCESS_TOKEN")
+	branch = v.GetString("CIRCLE_BRANCH")
+	org = v.GetString("CIRCLE_PROJECT_USERNAME")
+	repo = v.GetString("CIRCLE_PROJECT_REPONAME")
 
 	// Take the envs and load it on the struct
 	err := v.Unmarshal(b)
