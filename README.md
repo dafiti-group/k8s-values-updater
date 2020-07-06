@@ -8,7 +8,7 @@ Changes certain values on your deployment values, updates the tag and pullReques
 
 ## Options
 
-The main options of the bum command are:
+The main options of the bump command are:
 - `--tag` Set the `chart.image.tag` value
 - `--pr-id` Set the `chart.image.pullRequestId` value
 - `--file-names` Can be a comma separetaed value like `qa-values.yaml,live-values.yaml`
@@ -18,29 +18,34 @@ The main options of the bum command are:
 
 Here`s the help
 ```
+» k8s-values-updater
 Bump value on file
 
 Usage:
   k8s-values-updater bump [flags]
 
 Flags:
-      --branch string         branch
-      --chart-name string     The name of the subchart
-      --dir-path string       File Path (default "deploy/*")
-      --email string          Email that will commit (default "k8s-values-updater@mailinator.com")
-      --file-names string     File Path (default "values.yaml")
-  -h, --help                  help for bump
-      --is-root               If set will define that the values to be changed has no subchart
-      --pr-id string          Pull Request ID
-      --refspec string        refspec
-      --remote-name string     (default "origin")
-      --replace-with string   If passed will try to merge this value with the values yaml
-      --tag string            Image Tag
+  -b, --branch string                Branch (Will use if set $CIRCLE_BRANCH)
+      --chart-name string            The name of the subchart
+      --dir-path string              File Path (default "deploy/*")
+  -e, --email string                 Email that will commit (default "k8s-values-updater@mailinator.com")
+      --file-names string            File Path (default "values.yaml")
+      --github-access-token string   Github Acccess Token (Will use if set $GITHUB_ACCESS_TOKEN)
+  -h, --help                         help for bump
+      --is-root                      If set will define that the values to be changed has no subchart
+  -o, --org string                   Organization (Will use if set $CIRCLE_PROJECT_USERNAME)
+  -p, --pr-id string                 Pull Request ID
+      --remote-name string            (default "origin")
+      --replace-with string          If passed will try to merge this value with the values yaml
+  -r, --repo string                  Repository (Will use if set $CIRCLE_PROJECT_REPONAME)
+  -t, --tag string                   Image Tag
+  -w, --workdir string               Workdir (default ".")
 
 Global Flags:
-      --config string   config file (default is $HOME/.config.yaml)
-      --dry-run         Dry Run
-  -v, --verbose         verbose output
+      --config string      config file (default is $HOME/.config.yaml)
+      --dry-run            Dry Run
+      --log-level string   Log level (debug, info, warn, error, fatal, panic (default "warning")
+  -v, --verbose            Dry Run
 ```
 
 ## Local Usage
