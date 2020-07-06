@@ -16,6 +16,4 @@ jobs:
       - run:
           name: Try to commit and push
           command: |
-            env
-
             /k8s-values-updater bump -e d.ploy@dafiti.com.br -t $(echo ${CIRCLE_SHA1} | head -c7) --dir-path example
