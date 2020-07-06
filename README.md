@@ -55,29 +55,25 @@ Global Flags:
 ## Circle
 
 ```
-  # Update PR ID
-  update-pr-id:
+# ...
+workflows:
+  build-and-test:
+    jobs:
+      - test:
+          context: <CONTEXT_WITH_GITHUB_TOKEN>
+# ...
+jobs:
+  # Test
+  test:
     docker:
-      # https://github.com/dafiti-group/k8s-values-updater
-      - image: quay.io/dafiti/k8s-values-updater:latest
+      - image: quay.io/dafiti/k8s-values-updater:master
     steps:
       - setup_remote_docker
-      - add_ssh_keys:
-          fingerprints:
-            - "<your-ssh-key-fingerprint>"
-      - checkout
       - run:
-          name: Update PR ID
+          name: Try to commit and push
           command: |
-            # Will remove this in the future
-            ssh-keyscan -H github.com > ~/.ssh/known_hosts
-            #
-            # Will update the key pullRequestID on every values file
-            /k8s-values-updater bump \
-              --pr-id $(echo ${CI_PULL_REQUEST##*/}) \
-              --email <some-email> \
-            # Will remove this in the future
-            git push origin $CIRCLE_BRANCH
+            /k8s-values-updater bump -e <some-email> -t $(echo ${CIRCLE_SHA1} | head -c7)
+
 ```
 
 ...
