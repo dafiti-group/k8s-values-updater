@@ -10,7 +10,7 @@ require (
 	github.com/sirupsen/logrus v1.2.0
 	github.com/spf13/afero v1.2.2 // indirect
 	github.com/spf13/cobra v1.0.0
-	github.com/spf13/pflag v1.0.5 // indirect
+	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.7.0
 	github.com/src-d/go-git v4.7.0+incompatible
 	gopkg.in/src-d/go-billy.v4 v4.3.2

@@ -5,55 +5,54 @@ import (
 
 	file "github.com/dafiti-group/k8s-values-updater/pkg/bump/file"
 	git "github.com/dafiti-group/k8s-values-updater/pkg/bump/git"
+	"github.com/k0kubun/pp"
 	"github.com/sirupsen/logrus"
 )
 
 type Bump struct {
-	DirPath   string
-	FileNames string
-	DryRun    bool
+	DirPath   string         `mapstructure:"dir_path"`
+	FileNames string         `mapstructure:"file_names"`
+	DryRun    bool           `mapstructure:"dry_run"`
+	Log       *logrus.Logger `mapstructure:"log"`
 
-	git  *git.Git
-	file *file.File
-	Log  *logrus.Logger
+	*git.Git
+	*file.File
+}
+
+func New(log *logrus.Logger) (b *Bump) {
+	pp.Println("Hy")
+	b = &Bump{
+		Git: &git.Git{
+			Log: log,
+		},
+		File: &file.File{
+			Log: log,
+		},
+	}
+	return b
 }
 
 // Init ...
 // TODO: Validade fields
 func (b *Bump) Init(
-	git *git.Git,
-	file *file.File,
 	token string,
 	dryRun bool,
-	log *logrus.Logger,
+	separator string,
 ) error {
-	// Initialize logger
-	git.Log = log
-	file.Log = log
-	b.Log = log
-
-	// Initialize Deps
-	b.git = git
-	b.file = file
-
 	// Initialize Params from root
 	b.DryRun = dryRun
 
-	// git.Branch = "feature/auth-only-with-https"
-	// git.URL = "https://github.com/dafiti-group/k8s-values-updater.git"
-
 	b.Log.Info(
-		"branch", b.git.Branch,
-		"url", b.git.URL,
+		"branch", b.Branch,
+		"url", b.URL,
 	)
 
-	separator := ","
-	err := git.Init(token, b.FileNames, b.DirPath, separator)
+	err := b.Git.Init(token, b.FileNames, b.DirPath, separator)
 	if err != nil {
 		return err
 	}
 
-	err = file.Init()
+	err = b.File.Init()
 	if err != nil {
 		return err
 	}
@@ -63,13 +62,8 @@ func (b *Bump) Init(
 
 // Run ...
 func (b *Bump) Run() error {
-	// //
-	// if err := b.git.Sync(); err != nil {
-	// 	return err
-	// }
-
 	//
-	files := b.git.Files()
+	files := b.Git.Files()
 
 	if len(files) < 1 {
 		return fmt.Errorf("file not found")
@@ -77,17 +71,17 @@ func (b *Bump) Run() error {
 
 	//
 	for _, f := range files {
-		if err := b.file.Bump(f); err != nil {
+		if err := b.File.Bump(f); err != nil {
 			return err
 		}
 	}
 
-	if !b.file.HasChanges() {
+	if !b.File.HasChanges() {
 		b.Log.Info("nothing changed")
 		return nil
 	}
 
-	if err := b.git.Push(b.file.GetChanges()); err != nil {
+	if err := b.Git.Push(b.File.GetChanges()); err != nil {
 		return err
 	}
 

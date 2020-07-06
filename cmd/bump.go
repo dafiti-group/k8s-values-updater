@@ -15,31 +15,30 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/dafiti-group/k8s-values-updater/pkg/bump"
+	"github.com/k0kubun/pp"
 	"github.com/sirupsen/logrus"
 
-	"github.com/dafiti-group/k8s-values-updater/pkg/bump/file"
-	"github.com/dafiti-group/k8s-values-updater/pkg/bump/git"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
 
-var b bump.Bump
-var g git.Git
-var f file.File
+var b = bump.New(logrus.New())
 var githubAccesToken string
-var branch string
-var org string
-var repo string
+var separator = ","
 
 // addCmd represents the add command
 var addCmd = &cobra.Command{
 	Use:   "bump",
 	Short: "Bump value on file",
 	Long:  ``,
+	Args: func(cmd *cobra.Command, args []string) error {
+		pp.Println(args)
+		return nil
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		//
 		dryRun, err := cmd.Flags().GetBool("dry-run")
@@ -48,24 +47,13 @@ var addCmd = &cobra.Command{
 			os.Exit(2)
 		}
 
-		// Refactor this
-		if g.Branch == "" && branch != "" {
-			g.Branch = branch
-		}
-		if g.URL == "" && repo != "" && org != "" {
-			g.URL = fmt.Sprintf(
-				"https://github.com/%v/%v.git",
-				org,
-				repo,
-			)
-		}
-		if g.Branch == "" || g.URL == "" {
-			logrus.Panic(os.Stderr, "Branch and URL are required")
-			os.Exit(2)
-		}
+		pp.Println(b.URL)
+		pp.Println(b.Branch)
+		pp.Println(githubAccesToken)
+		panic("---")
 
 		//
-		err = b.Init(&g, &f, githubAccesToken, dryRun, logrus.New())
+		err = b.Init(githubAccesToken, dryRun, separator)
 		if err != nil {
 			logrus.Panic(os.Stderr, err)
 			os.Exit(2)
@@ -81,48 +69,62 @@ var addCmd = &cobra.Command{
 
 func init() {
 	cobra.OnInitialize(func() {
-		initBump(&b)
+		viper.AutomaticEnv()
+		initEnvs(b)
+		addCmd.Flags().VisitAll(func(f *pflag.Flag) {
+			if viper.IsSet(f.Name) && viper.GetString(f.Name) != "" {
+				addCmd.Flags().Set(f.Name, viper.GetString(f.Name))
+			}
+		})
 	})
 
 	RootCmd.AddCommand(addCmd)
 
-	addCmd.PersistentFlags().BoolVarP(&f.IsRoot, "is-root", "", false, "If set will define that the values to be changed has no subchart")
+	addCmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) (err error) {
+		initEnvs(b)
+		return nil
+	}
+
+	addCmd.PersistentFlags().BoolVarP(&b.IsRoot, "is-root", "", false, "If set will define that the values to be changed has no subchart")
 	addCmd.PersistentFlags().StringVar(&b.DirPath, "dir-path", "deploy/*", "File Path")
 	addCmd.PersistentFlags().StringVar(&b.FileNames, "file-names", "values.yaml", "File Path")
 	addCmd.PersistentFlags().StringVar(&githubAccesToken, "github-access-token", "", "Github Acccess Token")
-	addCmd.PersistentFlags().StringVar(&f.ChartName, "chart-name", "", "The name of the subchart")
-	addCmd.PersistentFlags().StringVar(&f.ReplaceWith, "replace-with", "", "If passed will try to merge this value with the values yaml")
-	addCmd.PersistentFlags().StringVar(&g.RemoteName, "remote-name", "origin", "")
-	addCmd.PersistentFlags().StringVarP(&f.PrID, "pr-id", "p", "", "Pull Request ID")
-	addCmd.PersistentFlags().StringVarP(&f.Tag, "tag", "t", "", "Image Tag")
-	addCmd.PersistentFlags().StringVarP(&g.Email, "email", "e", "k8s-values-updater@mailinator.com", "Email that will commit")
-	addCmd.PersistentFlags().StringVarP(&g.WorkDir, "workdir", "w", ".", "Workdir")
+	addCmd.PersistentFlags().StringVar(&b.ChartName, "chart-name", "", "The name of the subchart")
+	addCmd.PersistentFlags().StringVar(&b.ReplaceWith, "replace-with", "", "If passed will try to merge this value with the values yaml")
+	addCmd.PersistentFlags().StringVar(&b.RemoteName, "remote-name", "origin", "")
+	addCmd.PersistentFlags().StringVarP(&b.PrID, "pr-id", "p", "", "Pull Request ID")
+	addCmd.PersistentFlags().StringVarP(&b.Tag, "tag", "t", "", "Image Tag")
+	addCmd.PersistentFlags().StringVarP(&b.Email, "email", "e", "k8s-values-updater@mailinator.com", "Email that will commit")
+	addCmd.PersistentFlags().StringVarP(&b.WorkDir, "workdir", "w", ".", "Workdir")
 
 	// addCmd.MarkPersistentFlagRequired("branch")
 	// addCmd.MarkPersistentFlagRequired("github-access-token")
 	// addCmd.MarkPersistentFlagRequired("url")
 }
 
-func initBump(b *bump.Bump) {
+func initEnvs(b *bump.Bump) {
 	v := viper.New()
 	// TODO: Maybe set some default envs
-	v.BindEnv("GITHUB_ACCESS_TOKEN")
-	v.BindEnv("CIRCLE_PROJECT_USERNAME")
-	v.BindEnv("CIRCLE_BRANCH")
-	v.BindEnv("CIRCLE_PROJECT_REPONAME")
+	v.SetEnvPrefix("circle")
+	v.BindEnv("github_access_token")
+	v.BindEnv("project_username")
+	v.BindEnv("branch")
+	v.BindEnv("project_reponame")
 	// CIRCLE_PROJECT_USERNAME=dafiti-group
 	// CIRCLE_PROJECT_REPONAME=k8s-values-updater
 	// CIRCLE_BRANCH=feature/auth-only-with-https
 
 	// Will not persist this on a struct
-	githubAccesToken = v.GetString("GITHUB_ACCESS_TOKEN")
-	branch = v.GetString("CIRCLE_BRANCH")
-	org = v.GetString("CIRCLE_PROJECT_USERNAME")
-	repo = v.GetString("CIRCLE_PROJECT_REPONAME")
+	b.SetAuth(v.GetString("GITHUB_ACCESS_TOKEN"))
+	// branch = v.GetString("CIRCLE_BRANCH")
+	// org = v.GetString("CIRCLE_PROJECT_USERNAME")
+	// repo = v.GetString("CIRCLE_PROJECT_REPONAME")
 
 	// Take the envs and load it on the struct
 	err := v.Unmarshal(b)
 	if err != nil {
-		panic(fmt.Errorf("fatal error config file: %s", err))
+		logrus.Panic(os.Stderr, err)
+		os.Exit(2)
+		panic(2)
 	}
 }

@@ -21,23 +21,32 @@ import (
 
 // Git
 type Git struct {
-	WorkDir    string
-	RemoteName string
-	Email      string
-	Clone      bool
+	Branch     string         `mapstructure:"branch"`
+	Email      string         `mapstructure:"email"`
+	Log        *logrus.Logger `mapstructure:"log"`
+	RemoteName string         `mapstructure:"remote_name"`
+	URL        string         `mapstructure:"url"`
+	WorkDir    string         `mapstructure:"workdir"`
 	auth       transport.AuthMethod
-	URL        string
-	Branch     string
-	Log        *logrus.Logger
+	filePaths  []string
+	files      []billy.File
+	fs         billy.Filesystem
 	repo       *git.Repository
 	worktree   *git.Worktree
-	fs         billy.Filesystem
-	files      []billy.File
-	filePaths  []string
 }
 
 var commitMsg = "[ci skip] ci: edit values with the new image tag\n\n\nskip-checks: true"
 var name = "K8s Values Updater"
+
+// SetAuth ...
+func (g *Git) SetAuth(token string) (err error) {
+	// Set Basic Auth
+	g.auth = &http.BasicAuth{
+		Username: "x-access-token",
+		Password: token,
+	}
+	return nil
+}
 
 // Init ...
 func (g *Git) Init(token string, fileNames string, dirPath string, separator string) (err error) {
@@ -46,7 +55,7 @@ func (g *Git) Init(token string, fileNames string, dirPath string, separator str
 
 	// Set Basic Auth
 	g.auth = &http.BasicAuth{
-		Username: "x-access-token", // yes, this can be anything except an empty string
+		Username: "x-access-token",
 		Password: token,
 	}
 

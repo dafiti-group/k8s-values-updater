@@ -14,12 +14,12 @@ import (
 )
 
 type File struct {
-	IsRoot       bool
-	ChartName    string
-	ReplaceWith  string
-	Tag          string
-	PrID         string
-	Log          *logrus.Logger
+	ChartName    string         `mapstructure:"chart_name"`
+	IsRoot       bool           `mapstructure:"is_root"`
+	Log          *logrus.Logger `mapstructure:"log"`
+	PrID         string         `mapstructure:"pr_id"`
+	ReplaceWith  string         `mapstructure:"replace_with"`
+	Tag          string         `mapstructure:"tag"`
 	changedFiles billy.Filesystem
 	changes      int
 }

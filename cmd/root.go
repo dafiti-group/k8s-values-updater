@@ -49,6 +49,9 @@ func Execute() {
 }
 
 func init() {
+	// Init config, will not be affected by log level change
+	cobra.OnInitialize(initConfig)
+
 	// Set Log level
 	RootCmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
 		if err := setUpLogs(os.Stdout, verbose, logLevel); err != nil {
@@ -59,15 +62,8 @@ func init() {
 			"level": logrus.GetLevel(),
 		}).Info("start")
 
-		if err := initConfig(); err != nil {
-			return err
-		}
-
 		return nil
 	}
-
-	// Init config
-	// cobra.OnInitialize(initConfig)
 
 	// Flags
 	RootCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "Dry Run")
@@ -91,18 +87,17 @@ func setUpLogs(out io.Writer, verbose bool, level string) error {
 }
 
 // initConfig reads in config file and ENV variables if set.
-func initConfig() error {
+func initConfig() {
 	logrus.Info("read config")
 
 	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
 		logrus.Warn(err)
-		return err
 	}
 
 	viper.SetConfigName(".config") // name of config file (without extension)
 	if cfgFile != "" {             // enable ability to specify config file via flag
-		logrus.Debug(">>> cfgFile: ", cfgFile)
+		logrus.Info(">>> cfgFile: ", cfgFile)
 		viper.SetConfigFile(cfgFile)
 		configDir := path.Dir(cfgFile)
 		if configDir != "." && configDir != dir {
@@ -117,14 +112,12 @@ func initConfig() error {
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
-		logrus.Debug("Using config file:", viper.ConfigFileUsed())
+		logrus.Info("Using config file:", viper.ConfigFileUsed())
 	} else {
 		logrus.Error(err)
 	}
 	viper.WatchConfig()
 	viper.OnConfigChange(func(e fsnotify.Event) {
-		logrus.Debug("Config file changed:", e.Name)
+		logrus.Info("Config file changed:", e.Name)
 	})
-
-	return nil
 }
