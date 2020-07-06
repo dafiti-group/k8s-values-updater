@@ -24,13 +24,14 @@ type File struct {
 	changes      int
 }
 
-//
+// Init ...
 func (f *File) Init() error {
 	f.changedFiles = memfs.New()
 	f.changes = 0
 	return nil
 }
 
+// Bump ...
 func (f *File) Bump(ioFile billy.File) error {
 	// Convert fs file into buffer
 	b, err := ioutil.ReadAll(ioFile)
@@ -98,9 +99,12 @@ func (f *File) Bump(ioFile billy.File) error {
 	return nil
 }
 
+// HasChanges ...
 func (f *File) HasChanges() bool {
 	return f.changes >= 1
 }
+
+// GetChanges ...
 func (f *File) GetChanges() billy.Filesystem {
 	return f.changedFiles
 }

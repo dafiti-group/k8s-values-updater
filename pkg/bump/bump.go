@@ -5,7 +5,6 @@ import (
 
 	file "github.com/dafiti-group/k8s-values-updater/pkg/bump/file"
 	git "github.com/dafiti-group/k8s-values-updater/pkg/bump/git"
-	"github.com/k0kubun/pp"
 	"github.com/sirupsen/logrus"
 )
 
@@ -19,17 +18,15 @@ type Bump struct {
 	*file.File
 }
 
-func New(log *logrus.Logger) (b *Bump) {
-	pp.Println("Hy")
-	b = &Bump{
-		Git: &git.Git{
-			Log: log,
-		},
+// New ...
+func New(log *logrus.Logger) *Bump {
+	return &Bump{
+		Git: git.New(log),
 		File: &file.File{
 			Log: log,
 		},
+		Log: log,
 	}
-	return b
 }
 
 // Init ...
@@ -38,16 +35,11 @@ func (b *Bump) Init(
 	token string,
 	dryRun bool,
 	separator string,
-) error {
+) (err error) {
 	// Initialize Params from root
 	b.DryRun = dryRun
 
-	b.Log.Info(
-		"branch", b.Branch,
-		"url", b.URL,
-	)
-
-	err := b.Git.Init(token, b.FileNames, b.DirPath, separator)
+	err = b.Git.Init(token, b.FileNames, b.DirPath, separator)
 	if err != nil {
 		return err
 	}
@@ -66,7 +58,7 @@ func (b *Bump) Run() error {
 	files := b.Git.Files()
 
 	if len(files) < 1 {
-		return fmt.Errorf("file not found")
+		return fmt.Errorf("no file found")
 	}
 
 	//

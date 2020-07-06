@@ -1,6 +1,7 @@
 package git
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -25,8 +26,8 @@ type Git struct {
 	Email      string         `mapstructure:"email"`
 	Log        *logrus.Logger `mapstructure:"log"`
 	RemoteName string         `mapstructure:"remote_name"`
-	URL        string         `mapstructure:"url"`
 	WorkDir    string         `mapstructure:"workdir"`
+	Remote     *Remote        `mapstructure:"remote"`
 	auth       transport.AuthMethod
 	filePaths  []string
 	files      []billy.File
@@ -38,30 +39,33 @@ type Git struct {
 var commitMsg = "[ci skip] ci: edit values with the new image tag\n\n\nskip-checks: true"
 var name = "K8s Values Updater"
 
-// SetAuth ...
-func (g *Git) SetAuth(token string) (err error) {
-	// Set Basic Auth
-	g.auth = &http.BasicAuth{
-		Username: "x-access-token",
-		Password: token,
+// New Creates instance ...
+func New(log *logrus.Logger) *Git {
+	return &Git{
+		Remote: &Remote{},
+		Log:    log,
+		fs:     memfs.New(),
 	}
-	return nil
 }
 
 // Init ...
 func (g *Git) Init(token string, fileNames string, dirPath string, separator string) (err error) {
-	// Start In memory storage
-	g.fs = memfs.New()
-
-	// Set Basic Auth
-	g.auth = &http.BasicAuth{
-		Username: "x-access-token",
-		Password: token,
+	// Set Token
+	err = g.SetAuth(token)
+	if err != nil {
+		return err
 	}
 
+	// Validate Remote
+	err = g.Remote.SetUrl()
+	if err != nil {
+		return err
+	}
+
+	//
 	g.Log.Info("Cloning")
 	repo, err := git.Clone(memory.NewStorage(), g.fs, &git.CloneOptions{
-		URL:           g.URL,
+		URL:           g.GetUrl(),
 		Auth:          g.auth,
 		SingleBranch:  true,
 		ReferenceName: plumbing.NewBranchReferenceName(g.Branch),
@@ -197,4 +201,24 @@ func (g *Git) GetFiles(dir string, names string, separator string) error {
 	}
 
 	return nil
+}
+
+// GetUrl ...
+func (g *Git) GetUrl() string {
+	return g.Remote.GetUrl()
+}
+
+// SetAuth ...
+func (g *Git) SetAuth(token string) (err error) {
+	// Validades auth
+	if token == "" {
+		return fmt.Errorf("no authentication set")
+	}
+
+	// Set Basic Auth
+	g.auth = &http.BasicAuth{
+		Username: "x-access-token",
+		Password: token,
+	}
+	return err
 }

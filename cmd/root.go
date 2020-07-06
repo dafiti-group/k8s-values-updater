@@ -30,13 +30,13 @@ var cfgFile string
 var logLevel string
 var verbose bool
 var dryRun bool
+var v = viper.New()
 
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
 	Use:   "k8s-values-updater",
 	Short: "Updates the k8s values",
 	Long:  ``,
-	//	Run: func(cmd *cobra.Command, args []string) { },
 }
 
 // Execute adds all child commands to the root command sets flags appropriately.
@@ -95,8 +95,8 @@ func initConfig() {
 		logrus.Warn(err)
 	}
 
-	viper.SetConfigName(".config") // name of config file (without extension)
-	if cfgFile != "" {             // enable ability to specify config file via flag
+	v.SetConfigName(".config") // name of config file (without extension)
+	if cfgFile != "" {         // enable ability to specify config file via flag
 		logrus.Info(">>> cfgFile: ", cfgFile)
 		viper.SetConfigFile(cfgFile)
 		configDir := path.Dir(cfgFile)
@@ -105,19 +105,19 @@ func initConfig() {
 		}
 	}
 
-	viper.AddConfigPath(dir)
-	viper.AddConfigPath(".")
-	viper.AddConfigPath("$HOME")
-	viper.AutomaticEnv() // read in environment variables that match
+	v.AddConfigPath(dir)
+	v.AddConfigPath(".")
+	v.AddConfigPath("$HOME")
+	v.AutomaticEnv() // read in environment variables that match
 
 	// If a config file is found, read it in.
-	if err := viper.ReadInConfig(); err == nil {
-		logrus.Info("Using config file:", viper.ConfigFileUsed())
+	if err := v.ReadInConfig(); err == nil {
+		logrus.Info("Using config file:", v.ConfigFileUsed())
 	} else {
 		logrus.Error(err)
 	}
-	viper.WatchConfig()
-	viper.OnConfigChange(func(e fsnotify.Event) {
+	v.WatchConfig()
+	v.OnConfigChange(func(e fsnotify.Event) {
 		logrus.Info("Config file changed:", e.Name)
 	})
 }
