@@ -10,7 +10,7 @@ jobs:
   # Test
   test:
     docker:
-      - image: quay.io/dafiti/k8s-values-updater:feature_auth-only-with-https
+      - image: quay.io/dafiti/k8s-values-updater:master
     steps:
       - setup_remote_docker
       - run:
